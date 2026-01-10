@@ -18,6 +18,7 @@ import usb_hid
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
+from pins import *
 
 # comment out these lines for non_US keyboards
 from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS as KeyboardLayout
@@ -459,26 +460,10 @@ kbd = Keyboard(usb_hid.devices)
 consumerControl = ConsumerControl(usb_hid.devices)
 layout = KeyboardLayout(kbd)
 
-#init button
-button1_pin = DigitalInOut(GP22) # defaults to input
-button1_pin.pull = Pull.UP      # turn on internal pull-up resistor
-button1 =  Debouncer(button1_pin)
 
-#init payload selection switch
-payload1Pin = digitalio.DigitalInOut(GP4)
-payload1Pin.switch_to_input(pull=digitalio.Pull.UP)
-payload2Pin = digitalio.DigitalInOut(GP5)
-payload2Pin.switch_to_input(pull=digitalio.Pull.UP)
-payload3Pin = digitalio.DigitalInOut(GP10)
-payload3Pin.switch_to_input(pull=digitalio.Pull.UP)
-payload4Pin = digitalio.DigitalInOut(GP11)
-payload4Pin.switch_to_input(pull=digitalio.Pull.UP)
 
 def getProgrammingStatus():
-    # check GP0 for setup mode
     # see setup mode for instructions
-    progStatusPin = digitalio.DigitalInOut(GP0)
-    progStatusPin.switch_to_input(pull=digitalio.Pull.UP)
     progStatus = not progStatusPin.value
     return(progStatus)
 
@@ -520,10 +505,6 @@ def selectPayload():
     global payload1Pin, payload2Pin, payload3Pin, payload4Pin
     payload = "payload.dd"
     # check switch status
-    # payload1 = GPIO4 to GND
-    # payload2 = GPIO5 to GND
-    # payload3 = GPIO10 to GND
-    # payload4 = GPIO11 to GND
     payload1State = not payload1Pin.value
     payload2State = not payload2Pin.value
     payload3State = not payload3Pin.value
