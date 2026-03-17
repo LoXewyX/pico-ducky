@@ -15,7 +15,7 @@
 <br />
 
 <div align="center">
-  <img src="images/board_aliexpress.png" alt="Raspberry Pi Pico board" width="300"/>
+  <img src="images/board-aliexpress.png" alt="Raspberry Pi Pico board" width="300"/>
 </div>
 
 ---
