@@ -34,6 +34,8 @@
 
 5. Copy the following files to the root of `CIRCUITPY`:
 
+6. Also download `neopixel.mpy` [here](https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel/releases).
+
 boot.py
 duckyinpython.py
 code.py
