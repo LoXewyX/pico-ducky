@@ -1,13 +1,14 @@
 # License : GPLv2.0
 # copyright (c) 2023  Dave Bailey
 # Author: Dave Bailey (dbisu, @daveisu)
-# Pico and Pico W board support
+# Pico board support only
 
-from board import *
-import board
+import os
+
 import digitalio
 import storage
-import os
+from board import GP15
+
 
 def is_exfil_enabled(payload_path="payload.dd"):
     try:
@@ -19,40 +20,22 @@ def is_exfil_enabled(payload_path="payload.dd"):
         pass
     return False
 
+
+# Check if exfiltration is enabled in payload
 exfil_enabled = is_exfil_enabled()
+
+# Check if loot file exists
 loot_exists = "loot.bin" in os.listdir("/")
-noStorage = False
+
+# Setup GP15 input to control USB visibility
 noStoragePin = digitalio.DigitalInOut(GP15)
 noStoragePin.switch_to_input(pull=digitalio.Pull.UP)
-noStorageStatus = noStoragePin.value
+noStorage = not noStoragePin.value  # True if connected to GND
 
-# If GP15 is not connected, it will default to being pulled high (True)
-# If GP is connected to GND, it will be low (False)
-
-# Pico:
-#   GP15 not connected == USB visible
-#   GP15 connected to GND == USB not visible
-
-# Pico W:
-#   GP15 not connected == USB NOT visible
-#   GP15 connected to GND == USB visible
-if exfil_enabled:
-    if not loot_exists:
-        storage.disable_usb_drive()
-if(board.board_id == 'raspberry_pi_pico' or board.board_id == 'raspberry_pi_pico2'):
-    # On Pi Pico, default to USB visible
-    noStorage = not noStorageStatus
-elif(board.board_id == 'raspberry_pi_pico_w' or board.board_id == 'raspberry_pi_pico2_w'):
-    # on Pi Pico W, default to USB hidden by default
-    # so webapp can access storage
-    noStorage = noStorageStatus
-
-if(noStorage == True):
-    # don't show USB drive to host PC
+# Disable USB drive if exfil is enabled and loot.bin doesn't exist
+if exfil_enabled and not loot_exists:
     storage.disable_usb_drive()
-    print("Disabling USB drive")
-else:
-    # normal boot
-    print("USB drive enabled")
 
-
+# Disable USB drive based on GP15 pin
+if noStorage:
+    storage.disable_usb_drive()
