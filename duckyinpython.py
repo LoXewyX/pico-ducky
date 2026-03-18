@@ -8,19 +8,11 @@ import re
 import time
 
 import usb_hid
-from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
-
-# comment out these lines for non_US keyboards
-from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS as KeyboardLayout
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keyboard_layout_us import KeyboardLayout
 from adafruit_hid.keycode import Keycode
-
-# uncomment these lines for non_US keyboards
-# replace LANG with appropriate language
-#from keyboard_layout_win_LANG import KeyboardLayout as KeyboardLayout
-#from keycode_win_LANG import Keycode
-
 from pins import led, progStatusPin, payload1Pin, payload2Pin, payload3Pin, payload4Pin
 
 # Offset used to distinguish consumer-control keycodes from regular HID keycodes
@@ -504,14 +496,11 @@ async def parseLine(line, script_lines):
         else:
             print("LED_RGB expects 3 values: LED_RGB <r> <g> <b>")
 
-    #elif line.startswith("LED_R"):
-        #_set_led(255, 0, 0)
+    elif line.startswith("LED_R"):
+        _set_led(255, 0, 0)
 
     elif line.startswith("LED_G"):
         _set_led(0, 255, 0)
-
-    elif line.startswith("LED_B"):
-        _set_led(0, 0, 255)
 
     # ---- Variable declaration ---------------------------------------------
     elif line.startswith("VAR"):
