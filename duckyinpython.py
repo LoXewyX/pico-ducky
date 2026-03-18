@@ -364,27 +364,8 @@ _led_last_color = (255, 255, 255)
 _led_current = (0, 0, 0)
 
 # When True the animation task yields without touching the LED so that
-# script commands (LED_COLOR, LED_RGB, LED, LED_OFF) remain visible
+# script commands (LED_COLOR, LED_RGB, LED_OFF) remain visible
 _led_override = False
-
-
-def _hue_to_rgb(hue):
-    """Convert a hue (0-359) to an (r, g, b) tuple (0-255 each).
-
-    Full saturation and value assumed.  Integer-only arithmetic so it
-    runs safely on bare CircuitPython without the math module.
-    """
-    sector = hue // 60
-    frac   = hue % 60
-    p = 0
-    q = 255 * (60 - frac) // 60
-    t = 255 * frac // 60
-    if sector == 0: return (255, t,   p)
-    if sector == 1: return (q,   255, p)
-    if sector == 2: return (p,   255, t)
-    if sector == 3: return (p,   q,   255)
-    if sector == 4: return (t,   p,   255)
-    return                 (255, p,   q)   # sector 5
 
 
 # ---------------------------------------------------------------------------
@@ -452,12 +433,12 @@ async def parseLine(line, script_lines):
 
     # ---- Multi-line STRINGLN block ----------------------------------------
     elif line == "STRINGLN":
-        line = replaceVariables(next(script_lines).strip())
-        while not line.startswith("END_STRINGLN"):
+        line = next(script_lines, None)
+        while line and not line.startswith("END_STRINGLN"):
             sendString(line)
             kbd.press(Keycode.ENTER)
             kbd.release(Keycode.ENTER)
-            line = replaceDefines(replaceVariables(next(script_lines).strip()))
+            line = next(script_lines, None)
 
     # ---- Single-line STRINGLN ---------------------------------------------
     elif line.startswith("STRINGLN"):
@@ -498,25 +479,6 @@ async def parseLine(line, script_lines):
         _led_override = False   # release override so animation resumes
         _set_led(0, 0, 0)
 
-    elif line.startswith("LED_R"):
-        _set_led(255, 0, 0)
-
-    elif line.startswith("LED_G"):
-        _set_led(0, 255, 0)
-
-    elif line.startswith("LED_B"):
-        _set_led(0, 0, 255)
-
-    elif line.startswith("LED_RGB"):
-        # LED_RGB <r> <g> <b>  – each value 0-255
-        parts = line.split()
-        if len(parts) == 4:
-            _led_override = True
-            _set_led(int(parts[1]), int(parts[2]), int(parts[3]))
-            _led_last_color = _led_current
-        else:
-            print("LED_RGB expects 3 values: LED_RGB <r> <g> <b>")
-
     elif line.startswith("LED_COLOR"):
         # LED_COLOR <name>  – named preset
         parts = line.split(None, 1)
@@ -529,15 +491,27 @@ async def parseLine(line, script_lines):
             else:
                 print("Unknown LED colour: " + parts[1].strip())
 
-    elif line.startswith("LED"):
-        # Toggle: off → restore last colour, on → save and turn off
-        if _led_current == (0, 0, 0):
+    elif line.startswith("LED_RGB"):
+        # LED_RGB <r> <g> <b>  – each value 0-255
+        parts = line.split()
+        if len(parts) == 4:
             _led_override = True
-            _set_led(*_led_last_color)
-        else:
+            r = int(evaluateExpression(replaceVariables(parts[1])))
+            g = int(evaluateExpression(replaceVariables(parts[2])))
+            b = int(evaluateExpression(replaceVariables(parts[3])))
+            _set_led(r, g, b)
             _led_last_color = _led_current
-            _led_override = False   # turning off clears override, animation resumes
-            _set_led(0, 0, 0)
+        else:
+            print("LED_RGB expects 3 values: LED_RGB <r> <g> <b>")
+
+    #elif line.startswith("LED_R"):
+        #_set_led(255, 0, 0)
+
+    elif line.startswith("LED_G"):
+        _set_led(0, 255, 0)
+
+    elif line.startswith("LED_B"):
+        _set_led(0, 0, 255)
 
     # ---- Variable declaration ---------------------------------------------
     elif line.startswith("VAR"):
