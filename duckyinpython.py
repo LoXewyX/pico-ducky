@@ -11,11 +11,15 @@ import usb_hid
 from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
 from adafruit_hid.keyboard import Keyboard
+
 from adafruit_hid.keyboard_layout_us import KeyboardLayout
 from adafruit_hid.keycode import Keycode
+#from keyboard_layout_win_es import KeyboardLayout
+#from keycode_win_es import Keycode
+
 from pins import led, progStatusPin, payload1Pin, payload2Pin, payload3Pin, payload4Pin
 
-# Offset used to distinguish consumer-control keycodes from regular HID keycodeshelloñ
+# Offset used to distinguish consumer-control keycodes from regular HID keycodes
 #
 CONSUMER_KEY_OFFSET = 1000
 
@@ -142,8 +146,9 @@ variables = {
     "$_INITIAL_SCROLLLOCK": False,
     "$_INITIAL_NUMLOCK":    False,
     "$_INITIAL_CAPSLOCK":   False,
-    "$_LED_LOCK":        True,
+    "$_LED_LOCK":           True,
     "$_LED_BRIGHTNESS":     1.0,
+    "$_LED_DEINIT_ON_EXIT": True,
 }
 
 # Read-only dynamic variables resolved at call time
@@ -506,6 +511,9 @@ async def parseLine(line, script_lines):
         defaultDelay = int(line[13:]) * 10
 
     # ---- LED control ------------------------------------------------------
+    elif line.startswith("LED_NO_DEINIT_ON_EXIT"):
+        variables["$_LED_DEINIT_ON_EXIT"] = False
+
     elif line.startswith("LED_BRIGHTNESS"):
         # LED_BRIGHTNESS <float>  – 0.0 (off) to 1.0 (full brightness)
         try:
@@ -684,12 +692,11 @@ class _DummyLed:
     """Silent stub used when NeoPixel initialisation fails."""
     def __init__(self):
         self._c = (0, 0, 0)
+        self.brightness = 1.0
     def __setitem__(self, i, v):
         self._c = v
     def __getitem__(self, i):
         return self._c
-    def brightness(self, v):
-        self._c = (int(v * self._c[0]), int(v * self._c[1]), int(v * self._c[2]))
     def show(self):
         pass
     def deinit(self):
@@ -761,7 +768,8 @@ async def runScript(file):
 
     # UNLOCK LED CONTROL
     variables["$_LED_LOCK"] = False
-    led.deinit()
+    if variables["$_LED_DEINIT_ON_EXIT"]:
+        led.deinit()
 
 
 # ---------------------------------------------------------------------------

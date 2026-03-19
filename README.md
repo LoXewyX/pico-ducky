@@ -52,20 +52,18 @@ pins.py
 
 ## LED WS2812 RGB Support
 
-- **LED_COLOR <name>** – Set LED to a predefined color (`RED`, `GREEN`, `BLUE`, `WHITE`, `YELLOW`, `CYAN`, `MAGENTA`, `ORANGE`, `PURPLE`).
+- **LED_COLOR <name>** – Set LED to a predefined color (`RED`, `GREEN`, `BLUE`, `WHITE`, `YELLOW`, `CYAN`, `MAGENTA`, `ORANGE`, `PURPLE`, ...).
 - **LED_RGB <r> <g> <b> [intensity]** – Set LED to custom RGB values (0–255 each), optionally scaled by intensity.
 - **LED_OFF** – Turn off the LED and restore previous color if needed.
 
 ### Example DuckyScript
 
+LED_NO_DEINIT_ON_EXIT
 LED_COLOR RED
 DELAY 500
 LED_RGB 0 255 0 128
-DELAY 500
-LED_OFF
 
-
-- Animations like rainbow/fade are supported using DuckyScript commands for smooth visual effects without blocking payload execution.
+- Implicitly LED will shutdown until code reaches the end, if you want to avoid this you can add `LED_NO_DEINIT_ON_EXIT`.
 
 ---
 
