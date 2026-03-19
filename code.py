@@ -15,15 +15,6 @@ from duckyinpython import (
     monitor_led_changes
 )
 
-# Sleep at start to allow host recognition
-time.sleep(0.5)
-
-# --- Exit immediately if drive.lock exists ---
-if "drive.lock" in os.listdir("/"):
-    print("drive.lock detected: exiting code.py")
-    while True:
-        time.sleep(1)  # Stop execution safely
-
 # --- Disable auto-reload ---
 supervisor.runtime.autoreload = False
 

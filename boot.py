@@ -24,7 +24,7 @@ noStorage = False
 
 noStoragePin = digitalio.DigitalInOut(GP15)
 noStoragePin.switch_to_input(pull=digitalio.Pull.UP)
-noStorageStatus = not noStoragePin.value
+noStorageStatus = noStoragePin.value
 
 print(noStorageStatus)
 
@@ -35,7 +35,11 @@ if not "run" in os.listdir("/"):
 with open("payload.dd", "r") as f:
     parts = f.readline().strip().split()
 
-    if parts and parts[0] == "ATTACKMODE":
+    if not noStorageStatus:
+        with open("/run", "w") as f:
+            f.write("0")
+
+    elif parts and parts[0] == "ATTACKMODE":
         modes = parts[1:]
 
         if modes == ["STORAGE"] or modes == ["HID", "STORAGE"]:
@@ -51,5 +55,4 @@ with open("payload.dd", "r") as f:
 
     else:
         with open("/run", "w") as f:
-            f.write("0" if noStorageStatus else "1")
-        storage.enable_usb_drive()
+            f.write("1")
