@@ -15,7 +15,8 @@ from adafruit_hid.keyboard_layout_us import KeyboardLayout
 from adafruit_hid.keycode import Keycode
 from pins import led, progStatusPin, payload1Pin, payload2Pin, payload3Pin, payload4Pin
 
-# Offset used to distinguish consumer-control keycodes from regular HID keycodes
+# Offset used to distinguish consumer-control keycodes from regular HID keycodeshelloñ
+#
 CONSUMER_KEY_OFFSET = 1000
 
 # ---------------------------------------------------------------------------
@@ -141,6 +142,8 @@ variables = {
     "$_INITIAL_SCROLLLOCK": False,
     "$_INITIAL_NUMLOCK":    False,
     "$_INITIAL_CAPSLOCK":   False,
+    "$_LED_LOCK":        True,
+    "$_LED_BRIGHTNESS":     1.0,
 }
 
 # Read-only dynamic variables resolved at call time
@@ -337,15 +340,55 @@ def replaceDefines(line):
 
 # Named colour presets (r, g, b) – 0-255 each
 _LED_COLORS = {
-    "RED":     (255,   0,   0),
-    "GREEN":   (  0, 255,   0),
-    "BLUE":    (  0,   0, 255),
-    "WHITE":   (255, 255, 255),
-    "YELLOW":  (255, 255,   0),
-    "CYAN":    (  0, 255, 255),
-    "MAGENTA": (255,   0, 255),
-    "ORANGE":  (255, 128,   0),
-    "PURPLE":  (128,   0, 255),
+    "AQUA":          (0, 255, 255),
+    "BEIGE":         (245, 245, 220),
+    "BLACK":         (0, 0, 0),
+    "BLUE":          (0, 0, 255),
+    "BROWN":         (165, 42, 42),
+    "CHOCOLATE":     (210, 105, 30),
+    "CORAL":         (255, 127, 80),
+    "CRIMSON":       (220, 20, 60),
+    "DEEP_PINK":     (255, 20, 147),
+    "DEEP_PINK":     (255, 20, 147),
+    "GOLD":          (255, 215, 0),
+    "GOLDENROD":     (218, 165, 32),
+    "GRAY":          (128, 128, 128),
+    "GREEN":         (0, 255, 0),
+    "DARK_GREEN":    (0, 100, 0),
+    "DARK_BLUE":     (0, 0, 139),
+    "DARK_CYAN":     (0, 139, 139),
+    "DARK_ORANGE":   (255, 140, 0),
+    "INDIGO":        (75, 0, 130),
+    "IVORY":         (255, 255, 240),
+    "LAVENDER":      (230, 230, 250),
+    "LIGHT_BLUE":    (173, 216, 230),
+    "LIGHT_PINK":    (255, 182, 193),
+    "LIME":          (191, 255, 0),
+    "MAGENTA":       (255, 0, 255),
+    "MINT":          (189, 252, 201),
+    "MIDNIGHT_BLUE": (25, 25, 112),
+    "NEON_BLUE":     (0, 191, 255),
+    "NEON_GREEN":    (57, 255, 20),
+    "NEON_PINK":     (255, 20, 147),
+    "NAVY":          (0, 0, 128),
+    "OLIVE":         (128, 128, 0),
+    "ORANGE":        (255, 128, 0),
+    "PINK":          (255, 192, 203),
+    "PLUM":          (221, 160, 221),
+    "PURPLE":        (128, 0, 128),
+    "ROYAL_BLUE":    (65, 105, 225),
+    "SALMON":        (250, 128, 114),
+    "SADDLE_BROWN":  (139, 69, 19),
+    "SEA_GREEN":     (46, 139, 87),
+    "SILVER":        (192, 192, 192),
+    "SKY_BLUE":      (135, 206, 235),
+    "SPRING_GREEN":  (0, 255, 127),
+    "STEEL_BLUE":    (70, 130, 180),
+    "TOMATO":        (255, 99, 71),
+    "TURQUOISE":     (64, 224, 208),
+    "VIOLET":        (238, 130, 238),
+    "WHITE":         (255, 255, 255),
+    "YELLOW":        (255, 255, 0),
 }
 
 # Last non-black colour – restored when LED toggle turns back on
@@ -355,24 +398,22 @@ _led_last_color = (255, 255, 255)
 # unreliable across CircuitPython versions
 _led_current = (0, 0, 0)
 
-# When True the animation task yields without touching the LED so that
-# script commands (LED_COLOR, LED_RGB, LED_OFF) remain visible
-_led_override = False
-
 
 # ---------------------------------------------------------------------------
 # Core line parser
 # ---------------------------------------------------------------------------
 
 def _set_led(r, g, b):
-    """Set the NeoPixel colour and push it to hardware immediately."""
     global _led_current
+
+    if not variables.get("$_LED_LOCK", True):
+        return
+
     _led_current = (r, g, b)
     led[0] = (r, g, b)
 
-
 async def parseLine(line, script_lines):
-    global defaultDelay, variables, functions, defines, _led_last_color, _led_current, _led_override
+    global defaultDelay, variables, functions, defines, _led_last_color, _led_current
 
     line = line.strip()
     if not line:
@@ -465,29 +506,35 @@ async def parseLine(line, script_lines):
         defaultDelay = int(line[13:]) * 10
 
     # ---- LED control ------------------------------------------------------
+    elif line.startswith("LED_BRIGHTNESS"):
+        # LED_BRIGHTNESS <float>  – 0.0 (off) to 1.0 (full brightness)
+        try:
+            value = float(replaceVariables(line[15:].strip()))
+            if value < 0:
+                value = 0.0
+            elif value > 1:
+                value = 1.0
+            variables["$_LED_BRIGHTNESS"] = value
+            led.brightness = value
+        except ValueError:
+            print("Invalid LED_BRIGHTNESS value:", line[15:].strip())
+
     elif line.startswith("LED_OFF"):
-        if _led_current != (0, 0, 0):
-            _led_last_color = _led_current
-        _led_override = False   # release override so animation resumes
         _set_led(0, 0, 0)
 
     elif line.startswith("LED_COLOR"):
-        # LED_COLOR <name>  – named preset
         parts = line.split(None, 1)
         if len(parts) == 2:
             rgb = _LED_COLORS.get(parts[1].strip().upper())
             if rgb:
-                _led_override = True
                 _set_led(*rgb)
                 _led_last_color = _led_current
             else:
                 print("Unknown LED colour: " + parts[1].strip())
 
     elif line.startswith("LED_RGB"):
-        # LED_RGB <r> <g> <b>  – each value 0-255
         parts = line.split()
         if len(parts) == 4:
-            _led_override = True
             r = int(evaluateExpression(replaceVariables(parts[1])))
             g = int(evaluateExpression(replaceVariables(parts[2])))
             b = int(evaluateExpression(replaceVariables(parts[3])))
@@ -641,7 +688,11 @@ class _DummyLed:
         self._c = v
     def __getitem__(self, i):
         return self._c
+    def brightness(self, v):
+        self._c = (int(v * self._c[0]), int(v * self._c[1]), int(v * self._c[2]))
     def show(self):
+        pass
+    def deinit(self):
         pass
 
 try:
@@ -664,6 +715,9 @@ defaultDelay = 0
 
 async def runScript(file):
     global defaultDelay
+
+    # LOCK LED CONTROL
+    variables["$_LED_LOCK"] = True
 
     restart = True
     try:
@@ -704,6 +758,10 @@ async def runScript(file):
 
     except OSError:
         print("Unable to open file", file)
+
+    # UNLOCK LED CONTROL
+    variables["$_LED_LOCK"] = False
+    led.deinit()
 
 
 # ---------------------------------------------------------------------------

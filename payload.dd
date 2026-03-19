@@ -1,6 +1,47 @@
-REM The next five lines open Notepad in Windows and type "Hello World!"
-GUI r
-STRING notepad
-ENTER
-DELAY 250
-STRING Hello World!
+REM Set brightness
+LED_BRIGHTNESS 0.5
+
+FUNCTION COLOR_WHEEL
+
+    VAR $_R = 0
+    VAR $_G = 0
+    VAR $_B = 0
+    VAR $_TMP = $_POS
+
+    IF $_TMP < 85 THEN
+        $_R = 255 - $_TMP * 3
+        $_G = $_TMP * 3
+        $_B = 0
+    ELSE IF $_TMP >= 85 && $_TMP < 170 THEN
+        $_TMP = $_TMP - 85
+        $_R = 0
+        $_G = 255 - $_TMP * 3
+        $_B = $_TMP * 3
+    ELSE
+        $_TMP = $_TMP - 170
+        $_R = $_TMP * 3
+        $_G = 0
+        $_B = 255 - $_TMP * 3
+    END_IF
+
+    LED_RGB $_R $_G $_B
+
+END_FUNCTION
+
+
+VAR $_COLOR_POS = 0
+
+WHILE TRUE
+
+    $_POS = $_COLOR_POS
+    COLOR_WHEEL
+
+    $_COLOR_POS = $_COLOR_POS + 1
+
+    IF $_COLOR_POS > 255 THEN
+        $_COLOR_POS = 0
+    END_IF
+
+    DELAY 20
+
+END_WHILE
