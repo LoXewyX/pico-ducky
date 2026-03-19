@@ -12,10 +12,10 @@ from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
 from adafruit_hid.keyboard import Keyboard
 
-#from adafruit_hid.keyboard_layout_us import KeyboardLayout
-#from adafruit_hid.keycode import Keycode
-from keyboard_layout_win_es import KeyboardLayout
-from keycode_win_es import Keycode
+from adafruit_hid.keyboard_layout_us import KeyboardLayout
+from adafruit_hid.keycode import Keycode
+#from keyboard_layout_win_es import KeyboardLayout
+#from keycode_win_es import Keycode
 
 from pins import led, button1, progStatusPin, payload1Pin, payload2Pin, payload3Pin, payload4Pin
 
@@ -380,6 +380,7 @@ _LED_COLORS = {
     "PINK":          (255, 192, 203),
     "PLUM":          (221, 160, 221),
     "PURPLE":        (128, 0, 128),
+    "RED":           (255, 0, 0),
     "ROYAL_BLUE":    (65, 105, 225),
     "SALMON":        (250, 128, 114),
     "SADDLE_BROWN":  (139, 69, 19),
