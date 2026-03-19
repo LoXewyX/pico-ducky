@@ -1,14 +1,12 @@
 # License : GPLv2.0
 # copyright (c) 2023  Dave Bailey
 # Author: Dave Bailey (dbisu, @daveisu)
-# Pico board support only
+# Pico and Pico W board support
 
-import os
-
+from board import GP15
 import digitalio
 import storage
-from board import GP15
-
+import os
 
 def is_exfil_enabled(payload_path="payload.dd"):
     try:
@@ -20,22 +18,38 @@ def is_exfil_enabled(payload_path="payload.dd"):
         pass
     return False
 
-
-# Check if exfiltration is enabled in payload
 exfil_enabled = is_exfil_enabled()
-
-# Check if loot file exists
 loot_exists = "loot.bin" in os.listdir("/")
+noStorage = False
 
-# Setup GP15 input to control USB visibility
 noStoragePin = digitalio.DigitalInOut(GP15)
 noStoragePin.switch_to_input(pull=digitalio.Pull.UP)
-noStorage = not noStoragePin.value  # True if connected to GND
+noStorageStatus = not noStoragePin.value
 
-# Disable USB drive if exfil is enabled and loot.bin doesn't exist
-if exfil_enabled and not loot_exists:
-    storage.disable_usb_drive()
+print(noStorageStatus)
 
-# Disable USB drive based on GP15 pin
-if noStorage:
-    storage.disable_usb_drive()
+if not "run" in os.listdir("/"):
+    with open("/run", "w") as f:
+        f.write("0")
+
+with open("payload.dd", "r") as f:
+    parts = f.readline().strip().split()
+
+    if parts and parts[0] == "ATTACKMODE":
+        modes = parts[1:]
+
+        if modes == ["STORAGE"] or modes == ["HID", "STORAGE"]:
+            with open("/run", "w") as f:
+                f.write("0")
+            storage.enable_usb_drive()
+        elif modes == ["HID"] or modes == ["OFF"]:
+            with open("/run", "w") as f:
+                f.write("1")
+            storage.disable_usb_drive()
+        else:
+            print(f"Unknown ATTACKMODE: <{modes}>")
+
+    else:
+        with open("/run", "w") as f:
+            f.write("0" if noStorageStatus else "1")
+        storage.enable_usb_drive()

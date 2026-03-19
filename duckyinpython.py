@@ -12,12 +12,12 @@ from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
 from adafruit_hid.keyboard import Keyboard
 
-from adafruit_hid.keyboard_layout_us import KeyboardLayout
-from adafruit_hid.keycode import Keycode
-#from keyboard_layout_win_es import KeyboardLayout
-#from keycode_win_es import Keycode
+#from adafruit_hid.keyboard_layout_us import KeyboardLayout
+#from adafruit_hid.keycode import Keycode
+from keyboard_layout_win_es import KeyboardLayout
+from keycode_win_es import Keycode
 
-from pins import led, progStatusPin, payload1Pin, payload2Pin, payload3Pin, payload4Pin
+from pins import led, button1, progStatusPin, payload1Pin, payload2Pin, payload3Pin, payload4Pin
 
 # Offset used to distinguish consumer-control keycodes from regular HID keycodes
 #
@@ -146,9 +146,9 @@ variables = {
     "$_INITIAL_SCROLLLOCK": False,
     "$_INITIAL_NUMLOCK":    False,
     "$_INITIAL_CAPSLOCK":   False,
-    "$_LED_LOCK":           True,
     "$_LED_BRIGHTNESS":     1.0,
     "$_LED_DEINIT_ON_EXIT": True,
+    "$_STORAGE_AVAILABLE":  True,
 }
 
 # Read-only dynamic variables resolved at call time
@@ -354,7 +354,6 @@ _LED_COLORS = {
     "CORAL":         (255, 127, 80),
     "CRIMSON":       (220, 20, 60),
     "DEEP_PINK":     (255, 20, 147),
-    "DEEP_PINK":     (255, 20, 147),
     "GOLD":          (255, 215, 0),
     "GOLDENROD":     (218, 165, 32),
     "GRAY":          (128, 128, 128),
@@ -411,9 +410,6 @@ _led_current = (0, 0, 0)
 def _set_led(r, g, b):
     global _led_current
 
-    if not variables.get("$_LED_LOCK", True):
-        return
-
     _led_current = (r, g, b)
     led[0] = (r, g, b)
 
@@ -448,8 +444,10 @@ async def parseLine(line, script_lines):
     elif line.startswith("REM"):
         pass  # inline comment – ignore
 
-    # ---- Key hold / release -----------------------------------------------
-    elif line.startswith("HOLD"):
+    elif line.startswith("ATTACKMODE"):
+        pass
+
+    if line.startswith("HOLD"):
         key     = line[5:].strip().upper()
         keycode = duckyKeys.get(key)
         if keycode:
@@ -457,6 +455,7 @@ async def parseLine(line, script_lines):
         else:
             print("Unknown key to HOLD: <" + key + ">")
 
+    # ---- Single-line RELEASE ---------------------------------------------
     elif line.startswith("RELEASE"):
         key     = line[8:].strip().upper()
         keycode = duckyKeys.get(key)
@@ -464,11 +463,6 @@ async def parseLine(line, script_lines):
             kbd.release(keycode)
         else:
             print("Unknown key to RELEASE: <" + key + ">")
-
-    # ---- Timing -----------------------------------------------------------
-    elif line.startswith("DELAY"):
-        time.sleep(float(replaceVariables(line)[6:]) / 1000)
-
     # ---- Multi-line STRINGLN block ----------------------------------------
     elif line == "STRINGLN":
         line = next(script_lines, None)
@@ -478,12 +472,6 @@ async def parseLine(line, script_lines):
             kbd.release(Keycode.ENTER)
             line = next(script_lines, None)
 
-    # ---- Single-line STRINGLN ---------------------------------------------
-    elif line.startswith("STRINGLN"):
-        sendString(replaceVariables(line[9:]))
-        kbd.press(Keycode.ENTER)
-        kbd.release(Keycode.ENTER)
-
     # ---- Multi-line STRING block ------------------------------------------
     elif line == "STRING":
         line = replaceVariables(next(script_lines).strip())
@@ -491,9 +479,51 @@ async def parseLine(line, script_lines):
             sendString(line)
             line = replaceDefines(replaceVariables(next(script_lines).strip()))
 
+    # ---- Single-line STRINGLN ---------------------------------------------
+    elif line.startswith("STRINGLN"):
+        sendString(replaceVariables(line[9:]))
+        kbd.press(Keycode.ENTER)
+        kbd.release(Keycode.ENTER)
+
     # ---- Single-line STRING -----------------------------------------------
     elif line.startswith("STRING"):
         sendString(replaceVariables(line[7:]))
+
+    # ---- Random character helpers -----------------------------------------
+
+    elif line == "RANDOM_LOWERCASE_LETTER":
+        sendString(random.choice(letters))
+
+    elif line == "RANDOM_UPPERCASE_LETTER":
+        sendString(random.choice(letters.upper()))
+
+    elif line == "RANDOM_LETTER":
+        sendString(random.choice(letters + letters.upper()))
+
+    elif line == "RANDOM_NUMBER":
+        sendString(random.choice(numbers))
+
+    elif line == "RANDOM_SPECIAL":
+        sendString(random.choice(specialChars))
+
+    elif line == "RANDOM_CHAR":
+        sendString(random.choice(letters + letters.upper() + numbers + specialChars))
+
+    elif line in ("VID_RANDOM", "PID_RANDOM"):
+        for _ in range(4):
+            sendString(random.choice("0123456789ABCDEF"))
+
+    elif line in ("MAN_RANDOM", "PROD_RANDOM"):
+        for _ in range(12):
+            sendString(random.choice(letters + letters.upper() + numbers))
+
+    elif line == "SERIAL_RANDOM":
+        for _ in range(12):
+            sendString(random.choice(letters + letters.upper() + numbers + specialChars))
+
+    # ---- Timing -----------------------------------------------------------
+    elif line.startswith("DELAY"):
+        time.sleep(float(replaceVariables(line)[6:]) / 1000)
 
     # ---- Debug print ------------------------------------------------------
     elif line.startswith("PRINT"):
@@ -609,37 +639,6 @@ async def parseLine(line, script_lines):
     elif line.upper().startswith("END_IF"):
         pass  # consumed by IF handler; silently ignore any stragglers
 
-    # ---- Random character helpers -----------------------------------------
-    elif line == "RANDOM_LOWERCASE_LETTER":
-        sendString(random.choice(letters))
-
-    elif line == "RANDOM_UPPERCASE_LETTER":
-        sendString(random.choice(letters.upper()))
-
-    elif line == "RANDOM_LETTER":
-        sendString(random.choice(letters + letters.upper()))
-
-    elif line == "RANDOM_NUMBER":
-        sendString(random.choice(numbers))
-
-    elif line == "RANDOM_SPECIAL":
-        sendString(random.choice(specialChars))
-
-    elif line == "RANDOM_CHAR":
-        sendString(random.choice(letters + letters.upper() + numbers + specialChars))
-
-    elif line in ("VID_RANDOM", "PID_RANDOM"):
-        for _ in range(4):
-            sendString(random.choice("0123456789ABCDEF"))
-
-    elif line in ("MAN_RANDOM", "PROD_RANDOM"):
-        for _ in range(12):
-            sendString(random.choice(letters + letters.upper() + numbers))
-
-    elif line == "SERIAL_RANDOM":
-        for _ in range(12):
-            sendString(random.choice(letters + letters.upper() + numbers + specialChars))
-
     # ---- Keyboard state ---------------------------------------------------
     elif line == "RESET":
         kbd.release_all()
@@ -676,7 +675,6 @@ async def parseLine(line, script_lines):
 
     return script_lines
 
-
 # ---------------------------------------------------------------------------
 # HID device initialisation  (must come after all helper definitions)
 # ---------------------------------------------------------------------------
@@ -685,29 +683,7 @@ kbd             = Keyboard(usb_hid.devices)
 consumerControl = ConsumerControl(usb_hid.devices)
 layout          = KeyboardLayout(kbd)
 
-# Onboard NeoPixel – wrapped in try/except so a bad pin name never crashes
-# the whole program.  If init fails a no-op stub is used instead and the
-# error is printed to the serial console.
-class _DummyLed:
-    """Silent stub used when NeoPixel initialisation fails."""
-    def __init__(self):
-        self._c = (0, 0, 0)
-        self.brightness = 1.0
-    def __setitem__(self, i, v):
-        self._c = v
-    def __getitem__(self, i):
-        return self._c
-    def show(self):
-        pass
-    def deinit(self):
-        pass
-
-try:
-    led[0] = (0, 0, 0)
-except Exception as e:
-    print("LED commands will be silent until the pin is fixed.")
-    led = _DummyLed()
-
+led[0] = (0, 0, 0)
 
 def getProgrammingStatus():
     return not progStatusPin.value
@@ -722,9 +698,6 @@ defaultDelay = 0
 
 async def runScript(file):
     global defaultDelay
-
-    # LOCK LED CONTROL
-    variables["$_LED_LOCK"] = True
 
     restart = True
     try:
@@ -766,8 +739,6 @@ async def runScript(file):
     except OSError:
         print("Unable to open file", file)
 
-    # UNLOCK LED CONTROL
-    variables["$_LED_LOCK"] = False
     if variables["$_LED_DEINIT_ON_EXIT"]:
         led.deinit()
 
@@ -793,7 +764,7 @@ def selectPayload():
 # Button monitor task
 # ---------------------------------------------------------------------------
 
-async def monitor_buttons(button1):
+async def monitor_buttons():
     print("starting monitor_buttons")
     button1Down = False
     while True:

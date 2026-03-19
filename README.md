@@ -57,12 +57,12 @@ pins.py
 - **LED_OFF** – Turn off the LED and restore previous color if needed.
 
 ### Example DuckyScript
-
+```
 LED_NO_DEINIT_ON_EXIT
 LED_COLOR RED
 DELAY 500
 LED_RGB 0 255 0 128
-
+```
 - Implicitly LED will shutdown until code reaches the end, if you want to avoid this you can add `LED_NO_DEINIT_ON_EXIT`.
 
 ---
