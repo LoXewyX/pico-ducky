@@ -1,4 +1,3 @@
-# pins.py
 # CircuitPython Pico pin assignments
 import board
 from digitalio import DigitalInOut, Pull

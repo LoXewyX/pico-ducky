@@ -4,7 +4,6 @@
 
 import asyncio
 import os
-import time
 
 import supervisor
 from duckyinpython import (
@@ -42,9 +41,6 @@ async def main_loop():
     ]
     await asyncio.gather(*tasks)
 
-with open("/run", "r") as f:
-    run_flag = f.read()
-
-# --- Run main loop ---
-if run_flag == "1":
-    asyncio.run(main_loop())
+with open("/var/run", "r") as f:
+    if f.read() == "1":
+        asyncio.run(main_loop())
